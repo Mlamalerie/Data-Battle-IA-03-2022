@@ -3,10 +3,13 @@ import glob
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import PIL
 import time
+PIL.Image.MAX_IMAGE_PIXELS = None
 
 
-def generate_images_from_pdf(resolution: int, pdf_path: str, output_folder_path: str) -> int:
+
+def generate_images_from_pdf(pdf_path: str, output_folder_path: str, extension: str = "png", resolution: int = None, overwrite : bool = False ) -> int:
     """Generate images from a pdf
 
     Args:
@@ -17,51 +20,64 @@ def generate_images_from_pdf(resolution: int, pdf_path: str, output_folder_path:
     Returns:
         int: Number of images generated
     """
+    # pdf exists
+    if not os.path.exists(pdf_path):
+        raise ValueError(f"File {pdf_path} does not exist")
+
+    pdf_path = pdf_path.replace("/", "\\") # replace / with \ for windows
+    pdf_parent_dirname = pdf_path.split("\\")[-2]
+    pdf_name = pdf_path.split("\\")[-1].split(".")[0]
+    output_pdf_dirpath = f"{output_folder_path}/{pdf_parent_dirname}/{pdf_name}"
+
+    if os.path.exists(output_pdf_dirpath) and os.path.isdir(output_pdf_dirpath):
+        count_files = len(glob.glob(f"{output_pdf_dirpath}/*.{extension}"))
+        if count_files > 0 and not overwrite:
+            print(f"! Folder {output_pdf_dirpath} already exists with {count_files} files")
+            return count_files
+    else:
+        # create folder for the pdf
+        os.makedirs(output_pdf_dirpath, exist_ok=True)
+
     # extract images from pdf
     images = convert_from_path(
         pdf_path, size=resolution, poppler_path=r"poppler-22.04.0/Library/bin"
     )
 
-    pdf_parent_dirname = pdf_path.split("\\")[-2]
-    pdf_name = pdf_path.split("\\")[-1].split(".")[0]
-    # create folder for the pdf
-    os.makedirs(f"{output_folder_path}/{pdf_parent_dirname}/{pdf_name}", exist_ok=True)
-
     # save images use multithreading (map) with tqdm progress bar
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = executor.map(
             lambda i: images[i].save(
-                f"{output_folder_path}/{pdf_parent_dirname}/{pdf_name}/{pdf_name}_{i}.jpg"
-            ),
+                f"{output_pdf_dirpath}/{pdf_name}_{i}.{extension}"
+            ) if f"{output_pdf_dirpath}/{pdf_name}_{i}.{extension}" not in glob.glob(f"{output_folder_path}/**/*.{extension}", recursive=True) else None,
             range(len(images))
         )
     return len(images)
 
 
-def generate_images(resolution: int, input_folder_path: str) -> None:
+def generate_images(input_folder_path: str, extension: str = "png", resolution: int = None, overwrite : bool = False):
     """Generate images from pdfs in a folder
 
     Args:
         resolution (int): Resolution of the images
         input_folder_path (str): Path to the folder containing the pdfs. Example: "data/NO_Quad_15"
     """
-    print(f"* Input folder: {input_folder_path}\n* Resolution: {resolution}")
+    print(f"* Input folder: {input_folder_path}\n* Resolution: {resolution}\n* Extension: {extension}\n* Overwrite: {overwrite}")
     # get all pdfs
     pdfs = glob.glob(f"{input_folder_path}/**/*.pdf", recursive=True)
     input_dirname = input_folder_path.split("\\")[-1]
     # create output folder with the same name as the input folder + parameters
-    output_dirname = f"{input_dirname}_extracted__{resolution}"
+    output_dirname = f"{input_dirname}_extracted__{resolution if resolution else 'original'}_{extension}"
     output_folder_path = input_folder_path.replace(input_dirname, output_dirname)
+    print(f"* Output folder: {output_folder_path}")
     os.makedirs(output_folder_path, exist_ok=True)
 
     count_images = 0
     # generate images from pdfs
     for pdf_path in tqdm(pdfs):
-        count_images += generate_images_from_pdf(resolution, pdf_path, output_folder_path)
+        count_images += generate_images_from_pdf(pdf_path, output_folder_path,extension=extension, resolution=resolution, overwrite=overwrite)
     # total images generated
-    print(f"* Output folder: {output_folder_path}")
     print(f"* Total images generated: {count_images}, Total pdfs: {len(pdfs)}")
 
 
 if __name__ == "__main__":
-    generate_images(3000, "data/NO_Quad_15")
+    generate_images("data/NO_Quad_15", overwrite=False)
