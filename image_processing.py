@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-def denoise_image(image: np.ndarray, method: str = 'fastNlMeansDenoising') -> np.ndarray:
+def denoise_image(image: np.ndarray, method: str = 'fastNlMeansDenoising', coeff : float = 1) -> np.ndarray:
     """Denoise image using OpenCV. Remove
 
     Args:
@@ -14,7 +14,8 @@ def denoise_image(image: np.ndarray, method: str = 'fastNlMeansDenoising') -> np
     """
     min_size = min(image.shape[:2])
     if method == 'fastNlMeansDenoising':
-        s = int(0.04 * min_size)
+        s = int(0.04 * min_size * coeff)
+
         dst = cv2.fastNlMeansDenoising(image, None, s, 7, 21)
     elif method == 'bilateralFilter':
         d = 9  # Diameter of each pixel neighborhood.
@@ -24,11 +25,13 @@ def denoise_image(image: np.ndarray, method: str = 'fastNlMeansDenoising') -> np
         sigmaColor = sigmaSpace = 75
 
         dst = cv2.bilateralFilter(image, d, sigmaColor, sigmaSpace)
-    elif method == 'medianBlur':
-        s = 5
+    elif method == 'median':
+        s = int(5*coeff)
+        s = s if s % 2 == 1 else s + 1
         dst = cv2.medianBlur(image, s)
-    elif method == 'GaussianBlur':
-        s = 5
+    elif method == 'gaussian':
+        s = int(5*coeff)
+        s = s if s % 2 == 1 else s + 1
         dst = cv2.GaussianBlur(image, (s, s), 0)
 
     else:
