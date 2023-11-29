@@ -41,10 +41,10 @@ st.sidebar.success("This is a **beta** version of the app.")
 # =======
 # We need to set up session state via st.session_state so that app interactions don't reset the app.
 
-if not "ok_display_charts" in st.session_state:
+if "ok_display_charts" not in st.session_state:
     st.session_state.ok_display_charts = False
 
-if not "lithology_data" in st.session_state:
+if "lithology_data" not in st.session_state:
     st.session_state.lithology_data = None
 
 
@@ -154,11 +154,11 @@ with gallery_tab:
                     if completion_report_pdf:
                         st.info("Completion report downloaded", icon="ℹ️")
 
-                    # todo: stop if no completion log found
-                    if not completion_log_pdf and not completion_report_pdf:
-                        st.error(
-                            "Completion log and completion report not found on NPD website, please upload them manually",
-                            icon="❌")
+                # todo: stop if no completion log found
+                if not completion_log_pdf and not completion_report_pdf:
+                    st.error(
+                        "Completion log and completion report not found on NPD website, please upload them manually",
+                        icon="❌")
 
             # 3. generate images from pdf files
             with st.expander("🖼️ - Images from pdf files"):

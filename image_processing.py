@@ -13,27 +13,25 @@ def denoise_image(image: np.ndarray, method: str = 'fastNlMeansDenoising', coeff
         dst: denoised image
     """
     min_size = min(image.shape[:2])
-    if method == 'fastNlMeansDenoising':
-        s = int(0.04 * min_size * coeff)
-
-        dst = cv2.fastNlMeansDenoising(image, None, s, 7, 21)
-    elif method == 'bilateralFilter':
-        d = 9  # Diameter of each pixel neighborhood.
-
+    if method == 'bilateralFilter':
         # Filter sigma in the color space. The greater the value, the colors farther to each other will start to get mixed.
         # Filter sigma in the coordinate space. The greater its value, the more further pixels will mix together, given that their colors lie within the sigmaColor range.
         sigmaColor = sigmaSpace = 75
 
-        dst = cv2.bilateralFilter(image, d, sigmaColor, sigmaSpace)
-    elif method == 'median':
-        s = int(5*coeff)
-        s = s if s % 2 == 1 else s + 1
-        dst = cv2.medianBlur(image, s)
+        dst = cv2.bilateralFilter(image, 9, sigmaColor, sigmaSpace)
+    elif method == 'fastNlMeansDenoising':
+        s = int(0.04 * min_size * coeff)
+
+        dst = cv2.fastNlMeansDenoising(image, None, s, 7, 21)
     elif method == 'gaussian':
         s = int(5*coeff)
         s = s if s % 2 == 1 else s + 1
         dst = cv2.GaussianBlur(image, (s, s), 0)
 
+    elif method == 'median':
+        s = int(5*coeff)
+        s = s if s % 2 == 1 else s + 1
+        dst = cv2.medianBlur(image, s)
     else:
         raise ValueError(f'Unknown method: {method}')
     return dst

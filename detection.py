@@ -123,8 +123,6 @@ def contour_vague():
 
 def task_detect_vague_circle(contour, gray,width, thresh, detect_circles, detect_vagues):
 
-    # Calculate the percentage of black pixels in the contour
-    is_vague = False
     is_circle = False
     circle_center = None
 
@@ -150,11 +148,13 @@ def task_detect_vague_circle(contour, gray,width, thresh, detect_circles, detect
             is_circle = True
             #circles.append(circle_center)
 
-    # 4. Detect vagues
-    if detect_vagues and cv2.matchShapes( contour_vague(), contour, cv2.CONTOURS_MATCH_I1, 0.0 ) < 0.3:
-        is_vague = True
-        #vagues.append(contour)
-
+    is_vague = bool(
+        detect_vagues
+        and cv2.matchShapes(
+            contour_vague(), contour, cv2.CONTOURS_MATCH_I1, 0.0
+        )
+        < 0.3
+    )
     return circle_center if is_circle else None, contour if is_vague else None
 
 def detect(img_path: str, detect_vagues=False, detect_ligns=False, detect_rectangles=False, detect_circles=False,
